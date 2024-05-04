@@ -1,0 +1,8 @@
+*.log
+*.logs
+logs/
+run/
+.env
+venv/
+.idea/
+*.pyc

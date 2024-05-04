@@ -1,0 +1,5 @@
+PyQt6
+cryptography
+SQLAlchemy # interface
+psycopg2 # engine library
+pandas
