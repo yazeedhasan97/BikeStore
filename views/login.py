@@ -2,8 +2,12 @@ import re
 
 from PyQt6.QtWidgets import QWidget, QGridLayout, QLabel, QMessageBox, QLineEdit, QPushButton, QCheckBox
 from PyQt6.QtGui import QIcon, QAction
+from cryptography.fernet import Fernet
 
 from common import consts
+from controllers.controller import AppController
+from models.models import User
+from utilities.utils import RememberMe
 from views.customes import QClickableLabel
 from views.mainapp import MainApp
 
@@ -59,27 +63,31 @@ class ForgetPasswordForm(QWidget):
         pass
 
     def check_password(self):
-        # msg = QMessageBox()
-        # email = self.lineEdit_username.text().lower()
-        # if email is None or email == '':
-        #     msg.setText('Please enter an email to validate.')
-        #     msg.exec()
-        #     return
-        #
-        # regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        # if not re.fullmatch(regex, email):
-        #     msg.setText('Text must be in an email format.')
-        #     msg.exec()
-        #     return
-        #
-        # # TODO: check for forget password API
-        # res = MainController.API_CONNECTION.post_forget_password_request(email=email)
-        # if res:
-        #     msg.setText('You will receive an email with the details.')
-        # else:
-        #     msg.setText("Could not find this user in the system.")
-        # msg.exec()
-        return
+        msg = QMessageBox()
+        email = self.lineEdit_username.text().lower()
+        if email is None or email == '':
+            msg.setText('Please enter an email to validate.')
+            msg.exec()
+            return
+
+        regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        if not re.fullmatch(regex, email):
+            msg.setText('Text must be in an email format.')
+            msg.exec()
+            return
+
+        user = AppController.db_fac.session.query(User).filter(
+            User.email == email,  # PK
+        ).first()
+
+        if user:
+            msg.setText('You will receive an email with the details.')
+            msg.exec()
+            # TODO: call the email API here to send email.
+        else:
+            msg.setText("Could not find this user in the system.")
+            msg.exec()
+            return
 
     def return_to_login_page(self):
         LoginForm(state='reverse').show()
@@ -94,6 +102,12 @@ class LoginForm(QWidget):
         super(LoginForm, self).__init__()
         self.__init_ui()
         self.screen = None
+        AppController.logger.info('Starting the loging success')
+        self._remember_object = RememberMe(
+            path=consts.REMEMBER_ME_FILE_PATH,
+            # key=Fernet.generate_key()
+        )
+        AppController.logger.info('Created the remember me object success')
         layout = QGridLayout()
 
         label_name = QLabel('Email')
@@ -137,8 +151,8 @@ class LoginForm(QWidget):
         layout.setContentsMargins(15, 25, 15, 25)
         self.setLayout(layout)
 
-        # if state is None:
-        #     self.__try_remember_me_login()
+        if state is None:
+            self.__try_remember_me_login()
 
     def show_password(self, ):
         if self.lineEdit_password.echoMode() == QLineEdit.EchoMode.Normal:
@@ -176,6 +190,7 @@ class LoginForm(QWidget):
             msg.exec()
             return
 
+        # REGEX [regular expression]: do the basic text processing, check if the email format is valid
         regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
         if not re.fullmatch(regex, email):
             msg.setText('Email must be in an email format.')
@@ -184,13 +199,33 @@ class LoginForm(QWidget):
 
         user = self.__load_user_data(email, password)
 
+        # Serialization: Communication/Storage formate between API and different programs
+        #  = STRING
+        #  - JSON
+        #  - XML
+        #  - YAML
+        #  = Binary
+        #      - h5
+        #      - pkl - differ per language - local to the application
+        #      - feather
+
+        # binary serialization -- Python
+        #  - Doesn't support composition serialization
+        #  - Nested function/method
+
+        #  Why we use serialization string formatted configuration ?
+        #   - because it can serve as centralized config for all the APIs and tool contributes to the project
+
         if self.remember_me.isChecked():
-            # utils.remember_me({
-            #     'email': user.email,
-            #     'password': user.password,
-            # },
-            #     consts.REMEMBER_ME_FILE_PATH
-            # )
+            # we can do it in two ways
+            # 1- db
+            # 2- serialization binary
+
+            self._remember_object.remember_user({
+                'email': user.email,
+                'password': user.password,
+            })
+
             pass
 
         print('done checking')
@@ -203,50 +238,61 @@ class LoginForm(QWidget):
         self.destroy()
         self.close()
 
-    def __load_user_data(self, email, password):
-        # msg = QMessageBox()
-        # user = MainController.DB_CONNECTION.query(User).filter(User.email == email).first()
-        # if user:
-        #     return user
-        # else:
-        #     data = MainController.API_CONNECTION.post_login_request(email, password)
-        #     if data:
-        #         user = crete_user_from_api(MainController.DB_CONNECTION, data, password)
-        #         return user
-        #     else:
-        #         msg.setText("Password might be incorrect. User is not found. APIs are down.")
-        #         msg.exec()
-        #         return False
-        return False
+    def __load_user_data(self, email, password, remember_me=False):
+        user = AppController.db_fac.session.query(User).filter(
+            User.email == email,  # PK
+        ).first()
 
-    # def __try_remember_me_login(self, ):
-    #     msg = QMessageBox()
-    #     data = utils.get_me(consts.REMEMBER_ME_FILE_PATH)
-    #
-    #     if data:
-    #         user = self.__load_user_data(
-    #             email=data['email'],
-    #             password=data['password'],
-    #         )
-    #     else:
-    #         msg.setText("Could not load pre-saved user.")
-    #         msg.exec()
-    #         return
-    #
-    #     utils.remember_me({
-    #         'email': user.email,
-    #         'password': user.password,
-    #     }, consts.REMEMBER_ME_FILE_PATH)
-    #     self.next_screen(user)
-    #     return True
+        msg = QMessageBox()
+        if user:
+            AppController.logger.info(f"user found is {user}")
+
+            if password != user.password:
+                if not remember_me:
+                    AppController.logger.warning("Password is incorrect.")
+                    msg.setText("Password is incorrect.")
+                else:
+                    AppController.logger.warning("Password was changed for the remember_me behavior")
+                    msg.setText("Password was changed since last remember me.")
+                msg.exec()
+                return False
+            return user
+        else:
+            AppController.logger.warning(f"User not found in the database.")
+
+            msg.setText(f"User {email} not found in the database.")
+            msg.exec()
+            return False
+
+    def __try_remember_me_login(self, ):
+        msg = QMessageBox()
+        data = self._remember_object.get_user()
+
+        if data:
+            user = self.__load_user_data(
+                email=data['email'],
+                password=data['password'],
+                remember_me=True,
+            )
+        else:
+            msg.setText("Could not load pre-saved user.")
+            msg.exec()
+            return
+
+        self._remember_object.remember_user({
+            'email': user.email,
+            'password': user.password,
+        }, )
+        self.next_screen(user)
+        return True
 
     def next_screen(self, user):
-        # self.screen = MainApp(
-        #     user=user,
-        # )
-        # self.screen.show()
-        #
-        # self.hide()
-        # self.destroy()
-        # self.close()
+        self.screen = MainApp(
+            user=user,
+        )
+        self.screen.show()
+
+        self.hide()
+        self.destroy()
+        self.close()
         pass

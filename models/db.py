@@ -10,7 +10,10 @@ from sqlalchemy import MetaData, inspect, create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.schema import CreateSchema
 
-from utils import Model
+from models.utils import Model
+
+
+# from utils import Model
 
 
 # THis is a load and validation layer [preperation]
@@ -647,7 +650,8 @@ if __name__ == "__main__":
         port=5432,
         database='postgres',
         username='postgres',
-        password='postgres'
+        password='postgres',
+        echo=False
     )
     conn = DBConnection(
         config
@@ -656,6 +660,7 @@ if __name__ == "__main__":
     df = conn.select("select * from data_quality.data_quality_inputs order by created_at desc")
 
     print(df)
+    print(type(df))
 
     conn.close()
 

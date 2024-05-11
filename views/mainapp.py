@@ -11,7 +11,7 @@ class MainApp(QMainWindow):
         self.user = user
 
     def __init_ui(self):
-        self.setWindowTitle(consts.APP_NAME + ' -- Login Form')
+        self.setWindowTitle(consts.APP_NAME )
         height = consts.LOGIN_SCREEN_HEIGHT
         width = consts.LOGIN_SCREEN_WIDTH
         self.resize(width, height)

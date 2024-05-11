@@ -10,17 +10,18 @@ from cryptography.fernet import Fernet
 
 
 class RememberMe:
-    def __init__(self, path, key, logger=None):
+    def __init__(self, path, key=None, logger=None):
         self.path = path
-        self.key = key
-        self.fernet = Fernet(key)
+        # self.key = key
+        # self.fernet = Fernet(key)
         self.logger = logger if logger else logging.getLogger(__name__)
 
     def remember_user(self, user):
         try:
-            encrypted_data = self.fernet.encrypt(pickle.dumps(user))
+            # encrypted_data = self.fernet.encrypt(pickle.dumps(user))
             with open(self.path, 'wb') as file:
-                file.write(encrypted_data)
+                # file.write(encrypted_data)
+                file.write(pickle.dumps(user))
             self.logger.info('User data remembered successfully.')
         except Exception as e:
             self.logger.error(f'Error occurred while saving user data: {e}')
@@ -30,7 +31,8 @@ class RememberMe:
             try:
                 with open(self.path, 'rb') as file:
                     encrypted_data = file.read()
-                decrypted_data = self.fernet.decrypt(encrypted_data)
+                # decrypted_data = self.fernet.decrypt(encrypted_data)
+                decrypted_data = encrypted_data
                 user = pickle.loads(decrypted_data)
                 self.logger.info('User data retrieved successfully.')
                 return user
