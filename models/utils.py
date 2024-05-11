@@ -13,7 +13,7 @@ class Singleton(type):
 
 
 class Model:
-    def __iter__(self):
+    def __iter__(self):  # give you the ability to use this class in a loop
         for attr, value in self.__dict__.items():
             yield attr[attr.rfind('__') + 2:], value
 
@@ -24,3 +24,8 @@ class Model:
 
     def __repr__(self):
         return self.__str__()
+
+
+class A(Model):
+    def __init__(self):
+        self.__me = 'me'

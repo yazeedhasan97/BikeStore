@@ -1,14 +1,17 @@
 import logging
 import os
+import platform
+import socket
 import sys
 from argparse import ArgumentParser
 
 from PyQt6.QtWidgets import QApplication
 
+from apis.messaging import MultiPurposeEmailSender
 from common import consts
 from controllers.controller import AppController
 from models.db import get_db_hook
-from models.models import BASE
+from models.models import BASE, Audit
 from utilities.loggings import MultipurposeLogger
 from utilities.utils import load_json_file
 from views.login import LoginForm
@@ -22,16 +25,28 @@ def main(args):
 
     config = load_json_file(args.config)
     logger.info(f"Loaded config is: {config}")
-    conn, fac = get_db_hook(config.get("database", {}), logger=logger, base=BASE)
 
+    conn, fac = get_db_hook(config.get("database", {}), logger=logger, base=BASE)
     AppController.db_conn = conn
     AppController.db_fac = fac
+
+    emailer = MultiPurposeEmailSender.construct_sender_from_dict(data=config.get("email", {}), logger=logger)
+    AppController.emailer = emailer
 
     try:
         fac.create_tables()
     except Exception as e:
         logger.error(f"Unable to build the DB for the Application: {e}")
         raise Exception(f"Unable to build the DB for the Application: {e}")
+
+    auditor = Audit(
+        os=platform.system(),
+        ip=socket.gethostbyname(socket.gethostname())
+    )
+    AppController.db_fac.session.add(auditor)
+    AppController.db_fac.session.commit()
+
+    AppController.auditor = auditor
 
     app = QApplication([])  # starts the observation cycle # the list can be empty
     # MainController.store_screen_details(app.primaryScreen())

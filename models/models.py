@@ -1,21 +1,25 @@
 from sqlalchemy.sql import func
 from datetime import datetime
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, DateTime, Enum, Float, Boolean, ARRAY, PrimaryKeyConstraint, BigInteger
+from sqlalchemy import Column, Integer, String, DateTime, Enum, Float, Boolean, ARRAY, PrimaryKeyConstraint, BigInteger, \
+    Index
 
+from models.consts import UserType
 from models.utils import Model
 
 BASE = declarative_base(cls=Model)  # DDL
 SCHEMA = 'bike_commercial'  # case sensitive
 
-
 # ORM: object Relational Mapper: bridge to connect OOP programs [models] to DB [tables]
+
+UserTypeEnum = Enum(UserType, name='UserTypeEnum', schema=SCHEMA)
 
 
 class User(BASE):  # class, model
     __tablename__ = 'users'
     __table_args__ = (
         PrimaryKeyConstraint('email'),
+        Index('users_index', 'email', 'username', 'usertype'),  # fasten the retrival queries
         {'extend_existing': True, 'schema': SCHEMA, },
 
     )
@@ -29,34 +33,41 @@ class User(BASE):  # class, model
     # main reference column in the table
     username = Column(String, nullable=False, )
     password = Column(String, nullable=False, )
+    usertype = Column(UserTypeEnum, nullable=True, default=UserType.ADMIN)
+    # removed_at = Column(DateTime, default=None, nullable=True) # soft-delete
 
 
 class Bike(BASE):  # class, model
     __tablename__ = 'bikes'
     __table_args__ = (
-        PrimaryKeyConstraint('email'),
+        PrimaryKeyConstraint('id'),
         {'extend_existing': True, 'schema': SCHEMA, },
 
     )
 
     # Note: models doesn't provide validation for the data [by default], error will happen on the database level
     # -- we must provide validation - through encapsulation
-    email = Column(String, primary_key=True, )
-    # not null
-    # unique
-    # indexed
-    # main reference column in the table
-    username = Column(String, nullable=False, )
-    password = Column(String, nullable=False, )
+    id = Column(Integer, autoincrement=True, primary_key=True, )
 
 
-class Audit(BASE):  # class, model
+class Audit(BASE):  # class, model # track the performance of your application
+    # audits - aims for external[business] use and to track of dashboards
+
     __tablename__ = 'audits'
     __table_args__ = (
-        PrimaryKeyConstraint('email'),
+        PrimaryKeyConstraint('id'),
         {'extend_existing': True, 'schema': SCHEMA, },
 
     )
+
+    # user = ....
+    # os = ...
+    # location = ...
+    id = Column(Integer, autoincrement=True, primary_key=True, )
+    os = Column(String, nullable=False, )
+    ip = Column(String, nullable=False, )
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=func.now(), nullable=False)
 
     pass
 

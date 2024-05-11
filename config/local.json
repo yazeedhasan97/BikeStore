@@ -10,5 +10,11 @@
     "query": null,
     "stream": false,
     "echo": false
+  },
+  "email": {
+    "server":"smtp.gmail.com",
+    "port":587,
+    "username":"yazeed.hasan.97@gmail.com",
+    "password":"mvioiyaqkaqipdni"
   }
 }

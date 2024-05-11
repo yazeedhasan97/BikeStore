@@ -2,7 +2,8 @@ import re
 
 from PyQt6.QtWidgets import QWidget, QGridLayout, QLabel, QMessageBox, QLineEdit, QPushButton, QCheckBox
 from PyQt6.QtGui import QIcon, QAction
-from cryptography.fernet import Fernet
+# from cryptography.fernet import Fernet
+from sqlalchemy import func
 
 from common import consts
 from controllers.controller import AppController
@@ -77,13 +78,19 @@ class ForgetPasswordForm(QWidget):
             return
 
         user = AppController.db_fac.session.query(User).filter(
-            User.email == email,  # PK
+            func.lower(User.email) == email.lower(),  # PK
         ).first()
 
         if user:
             msg.setText('You will receive an email with the details.')
             msg.exec()
             # TODO: call the email API here to send email.
+            AppController.emailer.send_email(
+                "Forget Password Remembered",
+                f"Your current password for the email '{user.email}' is: {user.password}",
+                receivers=[user.email],
+                # receivers=["osama2003issa@gmail.com", 'Ammarkden@outlook.com', 'M.abuzaineh@harmonysaudi.com'],
+            )
         else:
             msg.setText("Could not find this user in the system.")
             msg.exec()
